@@ -25,9 +25,26 @@ new profile directory; no `tap install` or capture service is required.
 CORE=/absolute/path/to/tap-core
 PROFILE="$HOME/.tap-core-chatgpt-search"
 
+curl -fL \
+  https://github.com/inem/tap-pack-chatgpt-search/releases/download/v0.1.0/chatgpt.search-0.1.0.tap-pack \
+  -o /tmp/chatgpt.search-0.1.0.tap-pack
+echo "04252e164ee562b6640fe572e3269edd5b6489ee2228df9171b05c5813fc2c4c  /tmp/chatgpt.search-0.1.0.tap-pack" \
+  | shasum -a 256 -c -
+```
+
+Or build the same deterministic artifact from source:
+
+```sh
+CORE=/absolute/path/to/tap-core
+PROFILE="$HOME/.tap-core-chatgpt-search"
+
 PYTHONPATH="$CORE" python3 -B -m tap_core.pack_store build . \
   --output /tmp/chatgpt.search-0.1.0.tap-pack
+```
 
+Enable it and confirm declarative discovery:
+
+```sh
 "$CORE/tap" --profile "$PROFILE" pack install /tmp/chatgpt.search-0.1.0.tap-pack
 "$CORE/tap" --profile "$PROFILE" pack enable chatgpt.search \
   --version 0.1.0 \
