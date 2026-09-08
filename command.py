@@ -85,6 +85,19 @@ def search_main(argv, command_context):
         print(json.dumps({"method": "POST", "url": command_context["config"]["base-url"] + "global/search",
                           "body": payload}, ensure_ascii=False, indent=2))
         return 0
+    if not auth_status(command_context["state_dir"])["configured"]:
+        legacy = Path.home() / ".tap/auth"
+        try:
+            import_auth(command_context["state_dir"], legacy)
+        except SearchError as error:
+            raise SearchError(
+                "ChatGPT access is not available. Open ChatGPT in the browser and provide "
+                "protected request credentials with `tap chatgpt auth import --from-dir DIRECTORY` "
+                f"(legacy migration checked {legacy}: {error})",
+                kind="auth",
+            ) from error
+        print(f"Imported existing ChatGPT authorization from {legacy} (values not displayed).",
+              file=sys.stderr)
     result = search(payload, command_context)
     if args.json:
         print(json.dumps(result, ensure_ascii=False))

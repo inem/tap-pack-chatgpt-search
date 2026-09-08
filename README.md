@@ -16,7 +16,29 @@ Compatibility can change without notice. Search is read-only by command intent,
 but the imported browser credentials carry the authority of the account session;
 TAP's manifest grant is not an OS sandbox or a reduced-scope ChatGPT token.
 
-## Install
+## Use
+
+With an installed TAP Core containing command API v1 and `pack add`:
+
+```sh
+tap pack add inem/tap-pack-chatgpt-search@0.1.1
+tap chatgpt search "release notes"
+```
+
+The first search automatically migrates valid protected credentials from the
+legacy `~/.tap/auth` directory when they are present. It says where they came
+from without printing their values. Later searches use the profile-owned copy.
+There is no separate required `connect` step.
+
+If no compatible legacy authorization exists, search stops without retrying and
+gives the explicit manual import command. This release does not claim a new-user
+browser login or OAuth flow.
+
+`pack add` shows the exact version, publisher, purpose and requested access
+before enabling local executable code. The `@0.1.1` suffix is required while
+this release remains a prerelease; stable releases are selected by default.
+
+## Developer installation
 
 Use a TAP Core checkout containing command API v1. A command-only pack may use a
 new profile directory; no `tap install` or capture service is required.
@@ -26,10 +48,8 @@ CORE=/absolute/path/to/tap-core
 PROFILE="$HOME/.tap-core-chatgpt-search"
 
 curl -fL \
-  https://github.com/inem/tap-pack-chatgpt-search/releases/download/v0.1.0/chatgpt.search-0.1.0.tap-pack \
-  -o /tmp/chatgpt.search-0.1.0.tap-pack
-echo "04252e164ee562b6640fe572e3269edd5b6489ee2228df9171b05c5813fc2c4c  /tmp/chatgpt.search-0.1.0.tap-pack" \
-  | shasum -a 256 -c -
+  https://github.com/inem/tap-pack-chatgpt-search/releases/download/v0.1.1/chatgpt.search-0.1.1.tap-pack \
+  -o /tmp/chatgpt.search-0.1.1.tap-pack
 ```
 
 Or build the same deterministic artifact from source:
@@ -39,22 +59,22 @@ CORE=/absolute/path/to/tap-core
 PROFILE="$HOME/.tap-core-chatgpt-search"
 
 PYTHONPATH="$CORE" python3 -B -m tap_core.pack_store build . \
-  --output /tmp/chatgpt.search-0.1.0.tap-pack
+  --output /tmp/chatgpt.search-0.1.1.tap-pack
 ```
 
 Enable it and confirm declarative discovery:
 
 ```sh
-"$CORE/tap" --profile "$PROFILE" pack install /tmp/chatgpt.search-0.1.0.tap-pack
+"$CORE/tap" --profile "$PROFILE" pack install /tmp/chatgpt.search-0.1.1.tap-pack
 "$CORE/tap" --profile "$PROFILE" pack enable chatgpt.search \
-  --version 0.1.0 \
+  --version 0.1.1 \
   --grant-origin https://chatgpt.com \
   --grant-capability command.execute
 "$CORE/tap" --profile "$PROFILE" --help
 "$CORE/tap" --profile "$PROFILE" chatgpt search --help
 ```
 
-## Connect auth
+## Advanced auth import
 
 The pack expects three regular, non-symlink files with mode `0600`:
 
