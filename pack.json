@@ -1,0 +1,67 @@
+{
+  "manifest_version": 1,
+  "id": "chatgpt.search",
+  "version": "0.1.0",
+  "requires": {
+    "pack_api": 1,
+    "dependencies": []
+  },
+  "files": [
+    "chatgpt_client.py",
+    "command.py",
+    "LICENSE"
+  ],
+  "entrypoints": {
+    "command": {
+      "interface": "process-argv-v1",
+      "runtime": "host-python",
+      "file": "command.py",
+      "commands": [
+        {
+          "path": ["chatgpt", "search"],
+          "summary": "Search conversations, projects, and library through ChatGPT",
+          "usage": "QUERY [--limit N] [--sources LIST] [--cursor VALUE] [--query-id UUID] [--json|--dry-run]",
+          "profile": "required"
+        },
+        {
+          "path": ["chatgpt", "auth", "import"],
+          "summary": "Import ChatGPT request credentials from protected files",
+          "usage": "--from-dir DIRECTORY",
+          "profile": "required"
+        },
+        {
+          "path": ["chatgpt", "auth", "status"],
+          "summary": "Check presence, permissions, and age of imported credentials",
+          "usage": "[--json]",
+          "profile": "required"
+        }
+      ]
+    }
+  },
+  "config": {
+    "base-url": {
+      "type": "string",
+      "default": "https://chatgpt.com/backend-api/"
+    },
+    "proxy": {
+      "type": "string",
+      "default": ""
+    },
+    "ca-file": {
+      "type": "string",
+      "default": ""
+    },
+    "timeout-seconds": {
+      "type": "integer",
+      "default": 30
+    }
+  },
+  "access": {
+    "origins": [
+      "https://chatgpt.com"
+    ],
+    "capabilities": [
+      "command.execute"
+    ]
+  }
+}

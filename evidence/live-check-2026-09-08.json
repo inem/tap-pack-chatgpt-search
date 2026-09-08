@@ -1,0 +1,13 @@
+{
+  "live_search": "failed",
+  "exit_code": 4,
+  "steps": {
+    "install": 0,
+    "enable": 0,
+    "auth_import": 0,
+    "search": 4
+  },
+  "result_content": "discarded, not saved",
+  "retry": "not attempted",
+  "claim": "live acceptance not established"
+}
