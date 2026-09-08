@@ -221,7 +221,10 @@ def search(payload, context):
             raw = response.read().decode("utf-8", errors="replace")
             status = response.status
     except HTTPError as error:
-        raw = error.read().decode("utf-8", errors="replace")
+        try:
+            raw = error.read().decode("utf-8", errors="replace")
+        except OSError:
+            raw = ""
         raise SearchError(
             f"ChatGPT returned HTTP {error.code}: {_error_message(raw)}",
             status_code=error.code,
