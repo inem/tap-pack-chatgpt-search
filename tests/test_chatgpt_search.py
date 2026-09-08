@@ -4,9 +4,11 @@ from pathlib import Path
 import stat
 import sys
 import tempfile
+import threading
 import unittest
 from unittest.mock import Mock, patch
 from urllib.error import URLError
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -86,6 +88,54 @@ class ChatGPTSearchTests(unittest.TestCase):
             with self.assertRaisesRegex(SearchError, "cannot reach ChatGPT"):
                 search(search_request("one attempt"), self.context())
         self.assertEqual(opener.open.call_count, 1)
+
+    def test_redirects_never_forward_credentials(self):
+        received = []
+
+        class Destination(BaseHTTPRequestHandler):
+            def do_GET(self):
+                received.append(dict(self.headers))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"items": []}')
+
+            def log_message(self, *_args):
+                pass
+
+        destination = ThreadingHTTPServer(("127.0.0.1", 0), Destination)
+        destination_thread = threading.Thread(target=destination.serve_forever, daemon=True)
+        destination_thread.start()
+        def cleanup_destination():
+            destination.shutdown()
+            destination.server_close()
+            destination_thread.join(timeout=5)
+        self.addCleanup(cleanup_destination)
+
+        for status in (302, 303):
+            class Origin(BaseHTTPRequestHandler):
+                def do_POST(self):
+                    self.send_response(status)
+                    self.send_header("Location", f"http://127.0.0.1:{destination.server_port}/sink")
+                    self.end_headers()
+
+                def log_message(self, *_args):
+                    pass
+
+            origin = ThreadingHTTPServer(("127.0.0.1", 0), Origin)
+            origin_thread = threading.Thread(target=origin.serve_forever, daemon=True)
+            origin_thread.start()
+            try:
+                import_auth(self.state, self.source)
+                context = self.context()
+                context["config"]["base-url"] = f"http://127.0.0.1:{origin.server_port}/"
+                context["grants"]["origins"] = [f"http://127.0.0.1:{origin.server_port}"]
+                with self.assertRaisesRegex(SearchError, f"HTTP {status}"):
+                    search(search_request("redirect"), context)
+            finally:
+                origin.shutdown()
+                origin.server_close()
+                origin_thread.join(timeout=5)
+        self.assertEqual(received, [])
 
     def test_dry_run_does_not_read_auth_or_open_network(self):
         context = self.context()
