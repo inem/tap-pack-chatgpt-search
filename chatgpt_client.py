@@ -11,7 +11,8 @@ import time
 import uuid
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener
+from urllib.request import (HTTPRedirectHandler, HTTPSHandler, ProxyHandler,
+                            Request, build_opener)
 
 
 AUTH_FILES = {
@@ -30,6 +31,13 @@ class SearchError(RuntimeError):
         super().__init__(message)
         self.kind = kind
         self.status_code = status_code
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    """Never forward account credentials to a redirect-selected destination."""
+
+    def redirect_request(self, request, fp, code, message, headers, new_url):
+        return None
 
 
 def _origin(url):
@@ -207,13 +215,16 @@ def search(payload, context):
     if urlsplit(base_url).scheme == "https":
         ssl_context = ssl.create_default_context(cafile=str(Path(ca_file).expanduser()) if ca_file else None)
         handlers.append(HTTPSHandler(context=ssl_context))
-    opener = build_opener(*handlers)
+    opener = build_opener(*handlers, _NoRedirect())
     try:
         with opener.open(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8", errors="replace")
             status = response.status
     except HTTPError as error:
-        raw = error.read().decode("utf-8", errors="replace")
+        try:
+            raw = error.read().decode("utf-8", errors="replace")
+        except OSError:
+            raw = ""
         raise SearchError(
             f"ChatGPT returned HTTP {error.code}: {_error_message(raw)}",
             status_code=error.code,
