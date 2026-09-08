@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "id": "chatgpt.search",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "requires": {
     "pack_api": 1,
     "dependencies": []

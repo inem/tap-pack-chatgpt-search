@@ -95,14 +95,15 @@ def main(argv=None):
             manifest["config"]["base-url"]["default"] = origin + "/backend-api/"
             manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
             profile = temporary / "profile"
-            artifact = temporary / "chatgpt.search-0.1.0.tap-pack"
+            artifact = temporary / "chatgpt.search-0.1.3.tap-pack"
             environment = {**os.environ, "PYTHONPATH": str(core),
-                           "PYTHONPYCACHEPREFIX": str(temporary / "pycache")}
+                           "PYTHONPYCACHEPREFIX": str(temporary / "pycache"),
+                           "HOME": str(temporary)}
             run([sys.executable, "-B", "-m", "tap_core.pack_store", "build", str(source),
                  "--output", str(artifact)], environment=environment)
             base = [sys.executable, "-B", str(tap), "--profile", str(profile)]
             run([*base, "pack", "install", str(artifact)], environment=environment)
-            run([*base, "pack", "enable", "chatgpt.search", "--version", "0.1.0",
+            run([*base, "pack", "enable", "chatgpt.search", "--version", "0.1.3",
                  "--grant-origin", origin, "--grant-capability", "command.execute"],
                 environment=environment)
             self_help = run([*base, "chatgpt", "search", "--help"], environment=environment)
@@ -120,9 +121,9 @@ def main(argv=None):
             result = json.loads(searched.stdout)
             request = SearchHandler.requests[-1]
 
-            manifest["version"] = "0.1.1"
+            manifest["version"] = "0.1.4"
             manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
-            update_artifact = temporary / "chatgpt.search-0.1.1.tap-pack"
+            update_artifact = temporary / "chatgpt.search-0.1.4.tap-pack"
             run([sys.executable, "-B", "-m", "tap_core.pack_store", "build", str(source),
                  "--output", str(update_artifact)], environment=environment)
             updated = run([*base, "pack", "update", str(update_artifact)], environment=environment)
@@ -139,11 +140,11 @@ def main(argv=None):
             report = {
                 "evidence": "installed artifact with anonymized loopback response",
                 "core": str(core),
-                "pack": {"id": "chatgpt.search", "versions": ["0.1.0", "0.1.1"]},
+                "pack": {"id": "chatgpt.search", "versions": ["0.1.3", "0.1.4"]},
                 "assertions": {
                     "bare_profile_without_capture_config": not (profile / "profile.json").exists(),
                     "root_help_lists_command_and_owner": "chatgpt search" in root_help.stdout
-                    and "chatgpt.search@0.1.0" in root_help.stdout,
+                    and "chatgpt.search@0.1.3" in root_help.stdout,
                     "command_help_is_declarative": "help does not run provider code" in self_help.stdout,
                     "help_made_no_request": help_no_request,
                     "missing_auth_exit_3_and_clear": missing_auth_clear,
@@ -151,13 +152,13 @@ def main(argv=None):
                     "search_exit_0_and_one_item": len(result.get("items", [])) == 1,
                     "argv_not_shell_interpreted": request["query"] == "alpha;$(not-a-shell)",
                     "credentials_reached_only_fixture_origin": request["auth"] and request["cookie"],
-                    "update_selected_0_1_1": '"version": "0.1.1"' in updated.stdout
-                    and "chatgpt.search@0.1.1" in updated_help.stdout,
+                    "update_selected_0_1_4": '"version": "0.1.4"' in updated.stdout
+                    and "chatgpt.search@0.1.4" in updated_help.stdout,
                     "dry_run_made_no_request": len(SearchHandler.requests) == request_count_before_disable,
                     "disable_removed_command": "invalid choice" in unavailable.stderr,
                     "disable_behavior_documented": "command discovery" in disabled.stdout,
                     "uninstall_removed_both_versions": all(
-                        version in uninstalled.stdout for version in ("0.1.0", "0.1.1")),
+                        version in uninstalled.stdout for version in ("0.1.3", "0.1.4")),
                     "installed_code_removed": code_removed,
                     "profile_auth_retained": retained_auth,
                 },

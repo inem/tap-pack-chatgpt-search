@@ -147,6 +147,20 @@ class ChatGPTSearchTests(unittest.TestCase):
             self.assertEqual(command.main(["dry run", "--dry-run"]), 0)
         self.assertFalse((self.state / "auth").exists())
 
+    def test_search_migrates_safe_legacy_auth_without_connect_command(self):
+        context = self.context()
+        from contextlib import redirect_stderr, redirect_stdout
+        import io
+        with patch.dict(os.environ, {"TAP_COMMAND_CONTEXT": json.dumps(context)}), \
+                patch("command.Path.home", return_value=self.root), \
+                patch("command.search", return_value={"items": [], "partial_results": False}), \
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as errors:
+            (self.root / ".tap").mkdir()
+            self.source.rename(self.root / ".tap/auth")
+            self.assertEqual(command.main(["query"]), 0)
+        self.assertTrue(auth_status(self.state)["configured"])
+        self.assertIn("Imported existing ChatGPT authorization", errors.getvalue())
+
     def test_response_rendering_sanitizes_terminal_controls(self):
         result = {"items": [{
             "title": "Synthetic\x1b[31m title", "source_type": "conversation",
